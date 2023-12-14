@@ -1,0 +1,5 @@
+So the scripts here use a combination of bash scripts and R scripts
+
+In some cases, the bash scripts run the R scripts
+
+In others, the bash scripts run special cellranger commands

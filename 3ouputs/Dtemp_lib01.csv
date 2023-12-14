@@ -1,0 +1,12 @@
+[gene-expression]
+reference,/hpcdata/bio_data/cellranger/refdata-gex-mm10-2020-A
+expect-cells,20000
+[vdj]
+reference,/hpcdata/bio_data/cellranger/refdata-cellranger-vdj-GRCm38-alts-ensembl-5.0.0
+[feature]
+reference,/hpcdata/lisbcb/MEMSEAL/raw/pool5_data/yfv/citeSeq_codes.csv
+[libraries]
+fastq_id,fastqs,lanes,feature_types,subsample_rate
+GEYGXD3001,/hpcdata/lisbcb/MEMSEAL/raw/pool5_data/yfv/gex_yfv_runD3001,1|2|3|4,gene expression,
+CSYGXD3001,/hpcdata/lisbcb/MEMSEAL/raw/pool5_data/yfv/gex_yfv_runD3001,1|2|3|4,antibody capture,
+VDYGXD3001,/hpcdata/lisbcb/MEMSEAL/raw/pool5_data/yfv/vdj_yfv_run3001,1|2|3|4,vdj,
