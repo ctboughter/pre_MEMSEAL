@@ -13,13 +13,13 @@ options(future.globals.maxSize = 10*1e9)
 
 #rm(list=ls())
 
-setwd('C:/Users/budha/Documents/R/YF_day.0.1.3.5.7') 
-labl_hsh <- read.xlsx('labels_hashtags.xlsx')
+labl_hsh <- read.xlsx('4inputs/labels_hashtags.xlsx')
 res <- 2 #define the resolution
 PC <- 50
 
 for (j in 61:76) {
   print(j)
+  # Obviously, set your own directory here
   setwd('C:/Users/budha/Documents/R/YF_day.0.1.3.5.7')
   D.data <- Read10X_h5(paste('./', labl_hsh[j,1], '.h5', sep = ""))
   k1 <- str_split(labl_hsh[j,4], " ") # pick up the hashes

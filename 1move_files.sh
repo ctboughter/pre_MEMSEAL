@@ -4,20 +4,26 @@
 # for i in 01 09 14 15
 # or count the numbers off
 # for i in {01..15} which IS smart enough to go 01 02 .. 14 15
-for i in {09..12};
+dis=yfv
+day=5
+# The prefix will change depending on the dataset
+# and the assay being moved... But hopefully these 
+# general pattterns should be consistent...
+prefix=GER
+for i in {01..16};
 do
     # MAKE SURE THERE ARE NO SPACES
     # IN YOUR VARIABLE DECLARATION
-    #datdir=vdj_rubella_run5$i
-    datdir=gex_rubella_run5$i
+    datdir=gex_"$dis"_run$day$i
     mkdir $datdir
 
-    #mv *VDRGXD5$i*_L00*/* $datdir/.
-    #rm -r *VDRGXD5$i*_L00*
+    # Check that _L000 is in your new files...
+    # There has been little consistency
+    # in the data that we receive.
+    mv *"$prefix"GXD$day$i*_L00*/* $datdir/.
     
-    mv *GERGXD5$i*_L00*/* $datdir/.
-    #mv *CSRGXD30$i*_L00*/* $datdir/.
-    rm -r *GERGXD5$i*_L00*
-    #rm -r *CSRGXD30$i*_L00*
+    # Do NOT remove the files until you know
+    # for sure that the script is functioning.
+    #rm -r *"$prefix"GXD$day$i*_L00*
 
 done

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 read datdir
 
 cd $datdir
