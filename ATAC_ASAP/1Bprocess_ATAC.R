@@ -16,6 +16,9 @@ library(EnsDb.Mmusculus.v79)
 library(ggplot2)
 library(patchwork)
 library(SeuratDisk)
+# Budha had this in here, I'm not quite sure why...
+# might end up breaking the script who knows.
+library(biovizBase)
 
 # Currently all of our data is in this directory
 #setwd('/home/bizon/Desktop/projects/darpa_project/data/atac_asap_test/atac1/outs')
@@ -38,7 +41,8 @@ chrom_assay <- CreateChromatinAssay(
   sep = c(":", "-"),
   fragments = 'out_y303/outs/fragments.tsv.gz',
   min.cells = 10,
-  min.features = 1
+  # Budha set this to 200 so lets keep that.
+  min.features = 200
 )
 
 data <- CreateSeuratObject(
@@ -53,7 +57,8 @@ annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Mmusculus.v79)
 
 # change to UCSC style since the data was mapped to hg19
 seqlevels(annotations) <- paste0('chr', seqlevels(annotations))
-genome(annotations) <- "mm10"
+# Budha commented this out, lets do what he does. He knows R
+#genome(annotations) <- "mm10"
 
 Annotation(data) <- annotations
 
@@ -99,19 +104,119 @@ dev.off()
 
 # So this is how we're supposed to QC, but it seems like with this pilot data (non DARPA), we won't be getting ANY of these
 # to work (nowhere near the expected number of peaks)
-#data <- subset(
-#  x = data,
-#  subset = nCount_peaks > 3000 &
-#    nCount_peaks < 30000 &
-#    pct_reads_in_peaks > 15 &
-#    blacklist_ratio < 0.05 &
-#    nucleosome_signal < 4 &
-#    TSS.enrichment > 3
-#)
+data <- subset(
+  x = data,
+  subset = nCount_peaks > 3000 &
+    nCount_peaks < 30000 &
+    pct_reads_in_peaks > 15 &
+    blacklist_ratio < 0.05 &
+    nucleosome_signal < 4 &
+    TSS.enrichment > 3
+)
 #data
 
 ## This final normalization step might be where we then output our files.
 data <- RunTFIDF(data)
+
+##########################################################################################
+# So this is a function Budha grabbed, but apparently it pulls out what we need.
+
+#Get the findRegion function from Signac repo:
+#Function taken from here: https://github.com/stuart-lab/signac/blob/master/R/utilities.R
+FindRegion <- function(
+  object,
+  region,
+  sep = c("-", "-"),
+  assay = NULL,
+  extend.upstream = 0,
+  extend.downstream = 0
+) {
+  if (!is(object = region, class2 = "GRanges")) {
+    # first try to convert to coordinates, if not lookup gene
+    region <- tryCatch(
+      expr = suppressWarnings(
+        expr = StringToGRanges(regions = region, sep = sep)
+      ),
+      error = function(x) {
+        region <- LookupGeneCoords(
+          object = object,
+          assay = assay,
+          gene = region
+        )
+        return(region)
+      }
+    )
+    if (is.null(x = region)) {
+      stop("Gene not found")
+    }
+  }
+  region <- suppressWarnings(expr = Extend(
+    x = region,
+    upstream = extend.upstream,
+    downstream = extend.downstream
+  )
+  )
+  return(region)
+}
+
+###########################################################################################
+# All Budha's code for running things...
+
+mat <- GetAssayData(object = data, assay = "peaks", slot = "data")
+mat <- as.matrix(mat)
+
+mode <- 'Multi' # Set to Single or Multi, depending on the requirement of analysis
+
+regions <- row.names(mat)
+gene_info <- rep("NA", length(regions))
+gene_meta <- data.frame(regions, gene_info)
+
+# Certain patches of the code in the loop is taken from the code of the Signac function AnnotatioPlot
+# I will just trust that this works... sure Budha...
+
+for (k in 1:length(regions)) {
+  
+  # Might want to look at RNA instead of "peaks" for this script.
+  # run both to see what works... Compare output differences.
+  region <- FindRegion(object = data, region = regions[k], sep = c("-", "-"), 
+        assay = "peaks", extend.upstream = 0, extend.downstream = 0)
+  start.pos <- start(x = region)
+  end.pos <- end(x = region)
+  chromosome <- seqnames(x = region)
+    
+  annotation <- Annotation(object = data)
+    
+  annotation.subset <- subsetByOverlaps(x = annotation, ranges = region)
+  genes.keep <- unique(x = annotation.subset$gene_name)
+  
+  if (length(genes.keep)>0) {
+    if (length(genes.keep)==1) {
+      gene_meta$gene_info[k] <- genes.keep
+    }
+    if (length(genes.keep)>1) {
+      if (mode == 'Single') {
+      gene_meta$gene_info[k] <- genes.keep[1]
+    }
+    
+    if (mode == "Multi") {
+      gene_meta$gene_info[k] <- paste(genes.keep, collapse = ", ")
+      print(k)
+    }
+    }
+    
+  }
+}
+
+write.csv(mat, "mat.csv")
+write.csv(gene_meta, "gene_meta.csv")
+
+SaveH5Seurat(data, 'out_y303/outs/atac_process303.h5', overwrite = FALSE, verbose = TRUE)
+
+# This conversion step *might* be where I'm running into an issue. Basically for whatever reason,
+# the H5Seurat file above cannot be read in to python. So I think the convert step is necessary...
+# Maybe the annotations could be saved as a CSV?
+
+Convert("out_y303/outs/atac_process303.h5.h5seurat",dest="h5ad")
 
 ###########################################################################################
 # EVERYTHING BELOW HERE RUN JUST THIS FIRST TIME. COMMENT ALL OF IT OUT LATER
